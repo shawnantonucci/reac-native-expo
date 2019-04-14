@@ -1,5 +1,12 @@
 import React, { Component } from "react";
-import { View, Animated, PanResponder, Dimensions } from "react-native";
+import {
+  View,
+  Animated,
+  PanResponder,
+  Dimensions,
+  LayoutAnimation,
+  UIManager
+} from "react-native";
 
 const SCREEN_WIDTH = Dimensions.get("window").width;
 const SWIPE_THRESHOLD = 0.25 * SCREEN_WIDTH;
@@ -37,6 +44,17 @@ class Deck extends Component {
       position,
       index: 0
     };
+  }
+
+  componentWillReceiveProps(nextProps) {
+    if(nextProps.data !== this.props.data) {
+      this.setState({ index: 0 })
+    }
+  } 
+
+  componentWillUpdate() {
+    UIManager.setLayoutAnimationEnabledExperimental && UIManager.setLayoutAnimationEnabledExperimental(true);
+    LayoutAnimation.spring();
   }
 
   forceSwipe = direction => {
@@ -80,41 +98,46 @@ class Deck extends Component {
       return this.props.renderNoMoreCards();
     }
 
-    return this.props.data.map((item, i) => {
-      if (i < this.state.index) {
-        return null;
-      }
+    return this.props.data
+      .map((item, i) => {
+        if (i < this.state.index) {
+          return null;
+        }
 
-      if (i === this.state.index) {
+        if (i === this.state.index) {
+          return (
+            <Animated.View
+              key={item.id}
+              style={[this.getCardStyle(), styles.cardStyle]}
+              {...this.state.panResponder.panHandlers}
+            >
+              {this.props.renderCard(item)}
+            </Animated.View>
+          );
+        }
+
         return (
           <Animated.View
             key={item.id}
-            style={[this.getCardStyle(), styles.cardStyle]}
-            {...this.state.panResponder.panHandlers}
+            style={[styles.cardStyle(i), { top: 10 * (i - this.state.index) }]}
           >
             {this.props.renderCard(item)}
           </Animated.View>
         );
-      }
-
-      return (
-        <Animated.View key={item.id} style={styles.cardStyle(i)}>
-          {this.props.renderCard(item)}
-        </Animated.View>
-      );
-    }).reverse();
-  }
+      })
+      .reverse();
+  };
 
   render() {
     return <View>{this.renderCards()}</View>;
   }
 }
 
-const styles ={
-  cardStyle:(i)=>({
-      position:'absolute',
-      width:SCREEN_WIDTH,
-      zIndex: i*-1
+const styles = {
+  cardStyle: i => ({
+    position: "absolute",
+    width: SCREEN_WIDTH,
+    zIndex: i * -1
   })
 };
 
